@@ -26,5 +26,5 @@ jobs:
       
     - name: Compile Sketch
       run: |
-        cd ArdruinoProMicro
+        cd ArdruinoProMicro/ModxoSpi2Par
         arduino-cli compile -b arduino:avr:leonardo --warnings "default"
