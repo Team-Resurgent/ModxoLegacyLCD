@@ -1,6 +1,6 @@
 #include "xeniumspi.h"
 #include "xboxsmbus.h"
-#include "src/SMWire/SMWire.h"
+#include "smwire.h"
 #include <LiquidCrystal.h>
 
 //Some screens like difference contrast values. So I couldn't really set a good default value
