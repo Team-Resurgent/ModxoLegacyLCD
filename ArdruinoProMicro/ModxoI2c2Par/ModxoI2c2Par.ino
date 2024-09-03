@@ -8,35 +8,14 @@
 //an extra electrolytic capacitor between the contrast pin (normally labelled 'V0') and GND.
 #define DEFAULT_CONTRAST 100 //0-255. Lower is higher contrast.
 #define DEFAULT_BACKLIGHT 255 //0-255. Higher is brighter.
-//#define USE_FAHRENHEIT 1 //Uncomment this line to make the in-game temp readouts display in Fahrenheit.
 
 //Use the following lines to set the LCD display size; currently only displays of 20/16 columns and 4 rows are supported.
 //16 column displays will have issues with the dashboard display as these are all expecting 20 column displays.
 #define LCD_ROW 4
 #define LCD_COL 20
 
-#if (LCD_COL == 16)
-        #define tempDisplayF "CPU:%3u%c MB:%3u%c"
-        #define tempDisplayC "CPU:%3u%c MB:%3u%c"
-        #define tenEightyI "1080i "
-        #define sevenTwentyP "720p "
-        #define fourEightyI "480i "
-        #define fourEightyP "480p "
-        #define fanSpeed "FAN: %3u%%  "
-#else
-        #define tempDisplayF "CPU:%3u%cF M/B:%3u%cF "
-        #define tempDisplayC "CPU:%3u%cC M/B:%3u%cC "
-        #define tenEightyI " 1080i  "
-        #define sevenTwentyP " 720p   "
-        #define fourEightyI " 480i    "
-        #define fourEightyP " 480p    "
-        #define fanSpeed "FAN: %3u%%   "
-
-#endif
-
 //HD44780 LCD Setup
 const uint8_t rs = 18, en = 8, d4 = 7, d5 = 6, d6 = 5, d7 = 4; //HD44780 compliant LCD display pin numbers
-const uint8_t mosi = 16, miso = 14, sck = 15, ss_in = 17; //SPI pin numbers, ss_in is the CS for the slave
 const uint8_t i2c_sda = 2, i2c_scl = 3; //i2c pins for SMBus
 const uint8_t backlightPin = 10, contrastPin = 9; //Pin nubmers for backlight and contrast. Must be PWM enabled
 uint8_t cursorPosCol = 0, cursorPosRow = 0; //Track the position of the cursor
@@ -48,8 +27,6 @@ LiquidCrystal hd44780(rs, en, d4, d5, d6, d7); //Constructor for the LCD.
 int16_t RxQueue[256]; //Input FIFO buffer for raw SPI data from Xenium
 uint8_t QueuePos; //Tracks the current position in the FIFO queue that is being processed
 uint8_t QueueRxPos; //Tracks the current position in the FIFO queue of the unprocessed input data (raw realtime SPI data)
-uint8_t SPIState; //SPI State machine flag to monitor the SPI bus state can = SPI_ACTIVE, SPI_IDLE, SPI_SYNC, SPI_WAIT
-uint32_t SPIIdleTimer; //Tracks how long the SPI bus has been idle for
 
 
 
@@ -59,12 +36,23 @@ uint8_t i2cCheckCount = 0;      //Tracks what check we're up to of the i2c bus b
 uint8_t I2C_BUSY_CHECKS = 5;  //To ensure we don't interfere with the actual Xbox's SMBus activity, we check the bus for activity for sending.
 
 
-//SPI Bus Receiver Interrupt Routine
-ISR (SPI_STC_vect) {
-  RxQueue[QueueRxPos] = SPDR;
-  QueueRxPos++; //This is an unsigned 8 bit variable, so will reset back to 0 after 255 automatically
-  SPIState = SPI_ACTIVE;
+// //SPI Bus Receiver Interrupt Routine
+// ISR (SPI_STC_vect) {
+//   RxQueue[QueueRxPos] = SPDR;
+//   QueueRxPos++; //This is an unsigned 8 bit variable, so will reset back to 0 after 255 automatically
+//   SPIState = SPI_ACTIVE;+
 
+// }
+
+void receiveEvent(int howMany) 
+{
+  Serial.print("gotvhar");
+  while (Wire.available() > 0) 
+  { 
+    uint8_t c = Wire.read(); // receive byte
+    RxQueue[QueueRxPos] = c;
+    QueueRxPos++;
+  }
 }
 
 void setup() {
@@ -83,12 +71,12 @@ void setup() {
 
   //I put my logic analyser on the Xenium SPI bus to confirm the bus properties.
   //The master clocks at ~16kHz. SPI Clock is high when inactive, data is valid on the trailing edge (CPOL/CPHA=1. Also known as SPI mode 3)
-  SPCR |= _BV(SPE);   //Turn on SPI. We don't set the MSTR bit so it's slave.
-  SPCR |= _BV(SPIE);  //Enable to SPI Interrupt Vector
+  // SPCR |= _BV(SPE);   //Turn on SPI. We don't set the MSTR bit so it's slave.
+  // SPCR |= _BV(SPIE);  //Enable to SPI Interrupt Vector
 
-  Wire.begin(0xDD); //Random address that is different from existing bus devices.
-  TWBR = ((F_CPU / 72000) - 16) / 2; //Change I2C frequency closer to OG Xbox SMBus speed. ~72kHz Not compulsory really, but a safe bet
-
+  Wire.begin(0x20);                // join I2C bus with address # 0x10
+  Wire.onReceive(receiveEvent); //Random address that is different from existing bus devices.
+ 
   analogWrite(backlightPin, DEFAULT_BACKLIGHT); //0-255 Higher number is brighter.
   analogWrite(contrastPin, DEFAULT_CONTRAST); //0-255 Lower number is higher contrast
 
@@ -100,6 +88,8 @@ void setup() {
 
 
 void loop() {
+
+
   //SPI to Parallel Conversion State Machine
   //One completion of processing command, set the buffer data value to -1
   //to indicate processing has been completed.
@@ -311,60 +301,6 @@ void loop() {
       QueuePos = (uint8_t)(QueuePos + 1);
     }
 
-  }
-
-  /* State machine to monitor the SPI Bus idle state */
-  /* State machine to monitor the SPI Bus idle state */
-  //If SPI bus has been idle pulse the CS line to resync the bus.
-  //Xenium SPI bus doesnt use a Chip select line to resync the bus so this is a bit hacky, but improved reliability
-  if (SPIState == SPI_ACTIVE) {
-    SPIState = SPI_IDLE;
-    SPIIdleTimer = millis();
-
-  } else if (SPIState == SPI_IDLE && (millis() - SPIIdleTimer) > 30) {
-    SPIState = SPI_SYNC;
-    SPIIdleTimer = millis();
-
-  } else if (SPIState == SPI_SYNC && (millis() - SPIIdleTimer) > 15) {
-    SPIState = SPI_WAIT;
-  }
-
-}
-
-/*
-   Function: Check if the SMBus/I2C bus is busy
-   ----------------------------
-     returns: 0 if busy is free, non zero if busy or still checking
-*/
-uint8_t i2cBusy() {
-  if (digitalRead(i2c_sda) == 0 || digitalRead(i2c_scl) == 0) { //If either the data or clock line is low, the line must be busy
-    i2cCheckCount = I2C_BUSY_CHECKS;
-  } else {
-    i2cCheckCount--; //Bus isn't busy, decrease check counter so we check multiple times to be sure.
-  }
-  return i2cCheckCount;
-}
-
-/*
-   Function: Read the Xbox SMBus
-   ----------------------------
-     address: The address of the device on the SMBus
-     command: The command to send to the device. Normally the register to read from
-     rx: A pointer to a receive data buffer
-     len: How many bytes to read
-     returns: 0 on success, -1 on error.
-*/
-int8_t readSMBus(uint8_t address, uint8_t command, char* rx, uint8_t len) {
-  Wire.beginTransmission(address);
-  Wire.write(command);
-  if (Wire.endTransmission(false) == 0) { //Needs to be false. Send I2c repeated start, dont release bus yet
-    Wire.requestFrom(address, len);
-    for (uint8_t i = 0; i < len; i++) {
-      rx[i] = Wire.read();
-    }
-    return 0;
-  } else {
-    return -1;
   }
 
 }
