@@ -1,23 +1,21 @@
-## What is it?
-This is a recreation of a legacy Original Xbox adaptor that allowed you to use extremely common and cheap HD44780 compliant character LCD displays with the Xenium modchip SPI interface. The legacy adaptor was called 'spi2par' and has long since been out of production and extremely hard to come by.
 
-I have never had one either, so this design has been made from the ground up.
+# ModxoSpi2Par for Ardruino Pro Micro
+
+## What is it?
+This is based off of Ryzee's spi2par project and is adapted for use with Modxo.
 
 There are two PCB layouts in this repository:
 
 1. More faithful to the legacy spi2par design.
 2. An LCD backpack design that takes advantage of the standard pinout of most HD44780 LCD displays to minimise the amount of wiring needed.
 
-These two layouts are shown in the below photo. The LCD backpack has two pin arrangements so can be used on the two common LCD pin header layouts as shown installed. The intent is to make this as open and easily accessible to anyone with minimal experience in soldering and programming.  
-<img src="./Images/boards.jpg" alt="spi2par2019" width="50%"/>
+The LCD backpack has two pin arrangements so can be used on the two common LCD pin header layouts. The intent is to make this as open and easily accessible to anyone with minimal experience in soldering and programming.  
 
 ## Features
 1. Converts the Xenium SPI interface to HD44780 compliant parallel LCDs. These are extremely cheap and readily available LCD modules.
 2. Software controllable brightness
 3. Software controllable contrast
 4. This feature never existed in the legacy. You can connect two additional wires to the motherboard LPC header, and the board will read fan speed and MB/CPU temperatures directly from the Xbox System Management bus. It will display and update this mid-game. Traditionally the LCD will just pause until you renter the dashboard.  Example below:  
-<img src="./Images/ingame_temp.jpg" alt="ingame" width="50%"/>
-
 
 ## Assembly and Materials Required
 There is two ways you can do this. Option 1 is the intended way and has a PCB daughter board to make installation easier.  <br> The second option uses less components but requires more wiring.
@@ -45,19 +43,15 @@ No extra PCB required, no backlight control, slightly harder soldering
 ## Programming
 1. Clone this repository to your PC
 2. Download then install the [Arduino IDE](https://www.arduino.cc/en/Main/Software).
-3. Copy `spi2par2019` to your Sketch folder and open the `.ino` file.
-4. Set the Board Type the `Arduino Leonardo` and the comport correctly.
+3. Open `ModxoSpi2Par\ModxoSpi2Par.ino`.
+4. Set the Board Type the `Arduino Micro` and the comport correctly.
 5. Compile by clicking the tick in the top left.
 5. Confirm it has compiled successfully from the console output.  
 6. Connect a MicroUSB cable between the Arduino Module and the PC.   
-7. Click the upload button and confirm successful. The LCD backlight should come on but no text will be displayed until connected to a Xenium or the Xbox SMBus.
+7. Click the upload button and confirm successful. The LCD backlight should come on but no text will be displayed until connected to a Modxo running PrometheOS or the Xbox SMBus.
 
 ## Installation
 <img src="./Images/spi2par_connection.jpg" alt="spi2par2019 connection diagram" width="75%"/>
 
 ## Alternative Installation
 <img src="./Images/spi2par_connection2.jpg" alt="spi2par2019 connection diagram alt" width="75%"/>
-
-## Further Setup
-If using XBMC, there appears to be a bug in the way the large text is printed to the LCD screen when used with a Xenium. This can cause the LCD screen to stop working when the screen saver starts.
-It is recommended to edit the /system/UserData/LCD.xml file and replace instances of `LCD.TimeWide21` or `LCD.TimeWide22` with something different. Perhaps `LCD.cputemperature` and `LCD.gputemperature` or if you want time, use the standard font (`System.Time`).
