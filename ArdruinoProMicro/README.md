@@ -50,8 +50,8 @@ No extra PCB required, no backlight control, slightly harder soldering
 6. Connect a MicroUSB cable between the Arduino Module and the PC.   
 7. Click the upload button and confirm successful. The LCD backlight should come on but no text will be displayed until connected to a Modxo running PrometheOS or the Xbox SMBus.
 
-## Installation
+## Installation Spi2Par
 <img src="./Images/spi2par_connection.jpg" alt="spi2par2019 connection diagram" width="75%"/>
 
-## Alternative Installation
+## Alternative Installation Spi2Par
 <img src="./Images/spi2par_connection2.jpg" alt="spi2par2019 connection diagram alt" width="75%"/>
