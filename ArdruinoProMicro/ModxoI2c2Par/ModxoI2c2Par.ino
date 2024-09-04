@@ -16,7 +16,7 @@
 
 //HD44780 LCD Setup
 const uint8_t rs = 18, en = 8, d4 = 7, d5 = 6, d6 = 5, d7 = 4; //HD44780 compliant LCD display pin numbers
-const uint8_t i2c_sda = 2, i2c_scl = 3; //i2c pins for SMBus
+const uint8_t i2c_sda = 2, i2c_scl = 3; //i2c pins
 const uint8_t backlightPin = 10, contrastPin = 9; //Pin nubmers for backlight and contrast. Must be PWM enabled
 uint8_t cursorPosCol = 0, cursorPosRow = 0; //Track the position of the cursor
 uint8_t wrapping = 0, scrolling = 0; //Xenium spi command toggles for the lcd screen.
@@ -28,32 +28,13 @@ int16_t RxQueue[256]; //Input FIFO buffer for raw SPI data from Xenium
 uint8_t QueuePos; //Tracks the current position in the FIFO queue that is being processed
 uint8_t QueueRxPos; //Tracks the current position in the FIFO queue of the unprocessed input data (raw realtime SPI data)
 
-
-
-//I2C Bus
-uint32_t SMBusTimer; //Timer used to trigger SMBus reads
-uint8_t i2cCheckCount = 0;      //Tracks what check we're up to of the i2c bus busy state
-uint8_t I2C_BUSY_CHECKS = 5;  //To ensure we don't interfere with the actual Xbox's SMBus activity, we check the bus for activity for sending.
-
-
-// //SPI Bus Receiver Interrupt Routine
-// ISR (SPI_STC_vect) {
-//   RxQueue[QueueRxPos] = SPDR;
-//   QueueRxPos++; //This is an unsigned 8 bit variable, so will reset back to 0 after 255 automatically
-//   SPIState = SPI_ACTIVE;+
-
-// }
-
 void receiveEvent(int howMany) 
 {
-  Serial.print("got char ");
   while (Wire.available() > 0) 
   { 
     uint8_t c = Wire.read(); // receive byte
     RxQueue[QueueRxPos] = c;
     QueueRxPos++;
-    Serial.print(c, HEX);
-    Serial.print(" ");
   }
   Serial.println();
 }
@@ -72,12 +53,7 @@ void setup() {
 
   memset(RxQueue, -1, 256);
 
-  //I put my logic analyser on the Xenium SPI bus to confirm the bus properties.
-  //The master clocks at ~16kHz. SPI Clock is high when inactive, data is valid on the trailing edge (CPOL/CPHA=1. Also known as SPI mode 3)
-  // SPCR |= _BV(SPE);   //Turn on SPI. We don't set the MSTR bit so it's slave.
-  // SPCR |= _BV(SPIE);  //Enable to SPI Interrupt Vector
-
-  Wire.begin(0x27);                // join I2C bus with address # 0x10
+  Wire.begin(0x10);                // join I2C bus with address # 0x10
   Wire.onReceive(receiveEvent); //Random address that is different from existing bus devices.
  
   analogWrite(backlightPin, DEFAULT_BACKLIGHT); //0-255 Higher number is brighter.
@@ -93,10 +69,9 @@ void setup() {
 void loop() {
 
 
-  //SPI to Parallel Conversion State Machine
+  //I2C to Parallel Conversion State Machine
   //One completion of processing command, set the buffer data value to -1
   //to indicate processing has been completed.
-
 
   if (QueueRxPos != QueuePos) {
     switch (RxQueue[(uint8_t)QueuePos]) {
