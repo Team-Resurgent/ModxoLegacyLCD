@@ -36,7 +36,6 @@ No extra PCB required, no backlight control, slightly harder soldering
 |Part|Qty | Possible Source|
 |--|--|--|
 | Arduino Pro Micro Leonardo 5V/16Mhz |1| [Any clones will work](https://www.aliexpress.com/item/32768308647.html). Make sure they're the 5V/16Mhz variant. | 
-| JST SH1.0 10 pin 1mm connector (To connect to Xenium) | 1 |Digikey: [Connector](https://www.digikey.com.au/product-detail/en/jst-sales-america-inc/SHR-10V-S-B/455-1385-ND/759874) + 3x[Jumpers](https://www.digikey.com.au/product-detail/en/jst-sales-america-inc/ASSHSSH28K152/455-3076-ND/6009452) OR <br> Aliexpress: [Connector with Jumpers (Get the 10P one)](https://www.aliexpress.com/item/32952366214.html)|
 | General Hook-up Wire 26AWG or so| A metre or two |-|
 
 ## Programming
