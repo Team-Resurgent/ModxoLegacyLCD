@@ -1,6 +1,6 @@
 #include "xeniumspi.h"
 #include "xboxsmbus.h"
-#include "smwire.h"
+#include "Wire.h"
 #include <LiquidCrystal.h>
 
 //Some screens like difference contrast values. So I couldn't really set a good default value
@@ -46,18 +46,21 @@ uint8_t I2C_BUSY_CHECKS = 5;  //To ensure we don't interfere with the actual Xbo
 
 void receiveEvent(int howMany) 
 {
-  Serial.print("gotvhar");
+  Serial.print("got char ");
   while (Wire.available() > 0) 
   { 
     uint8_t c = Wire.read(); // receive byte
     RxQueue[QueueRxPos] = c;
     QueueRxPos++;
+    Serial.print(c, HEX);
+    Serial.print(" ");
   }
+  Serial.println();
 }
 
 void setup() {
 
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   for (uint8_t i = 0; i < 8; i++) {
     delay(1);
@@ -74,7 +77,7 @@ void setup() {
   // SPCR |= _BV(SPE);   //Turn on SPI. We don't set the MSTR bit so it's slave.
   // SPCR |= _BV(SPIE);  //Enable to SPI Interrupt Vector
 
-  Wire.begin(0x20);                // join I2C bus with address # 0x10
+  Wire.begin(0x27);                // join I2C bus with address # 0x10
   Wire.onReceive(receiveEvent); //Random address that is different from existing bus devices.
  
   analogWrite(backlightPin, DEFAULT_BACKLIGHT); //0-255 Higher number is brighter.
@@ -83,7 +86,7 @@ void setup() {
   //Speed up PWM frequency. Gets rid of flickering
   TCCR1B &= 0b11111000;
   TCCR1B |= (1 << CS00); //Change Timer Prescaler for PWM
-  hd44780.setCursor(0, 0);
+  //hd44780.setCursor(0, 0); //Note: This command causes problems with i2c slave
 }
 
 
