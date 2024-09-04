@@ -1,5 +1,5 @@
 
-# ModxoSpi2Par for Ardruino Pro Micro
+# Modxo Spi2Par / I2c2Par for Ardruino Pro Micro
 
 ## What is it?
 This is based off of Ryzee's spi2par project and is adapted for use with Modxo.
