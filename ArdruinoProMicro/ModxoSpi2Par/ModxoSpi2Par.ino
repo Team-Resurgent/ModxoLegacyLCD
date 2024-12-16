@@ -85,6 +85,8 @@ void setup() {
   //The master clocks at ~16kHz. SPI Clock is high when inactive, data is valid on the trailing edge (CPOL/CPHA=1. Also known as SPI mode 3)
   SPCR |= _BV(SPE);   //Turn on SPI. We don't set the MSTR bit so it's slave.
   SPCR |= _BV(SPIE);  //Enable to SPI Interrupt Vector
+  SPCR |= _BV(CPOL);  //SPI Clock is high when inactive
+  SPCR |= _BV(CPHA);  //Data is Valid on Clock Trailing Edge
 
   Wire.begin(0xDD); //Random address that is different from existing bus devices.
   TWBR = ((F_CPU / 72000) - 16) / 2; //Change I2C frequency closer to OG Xbox SMBus speed. ~72kHz Not compulsory really, but a safe bet
@@ -251,7 +253,6 @@ void loop() {
               //Error: Invalid cursor direction
               break;
           }
-          Serial.print("\n");
           hd44780.setCursor(cursorPosCol, cursorPosRow);
           completeCommand(&RxQueue[(uint8_t)QueuePos]);
           completeCommand(&RxQueue[(uint8_t)(QueuePos + 1)]);
@@ -283,7 +284,6 @@ void loop() {
         break;
 
       case  32 ... 255: //Just an ASCII character
-        Serial.print((char)RxQueue[(uint8_t)QueuePos]);
         if (cursorPosCol < LCD_COL) {
           hd44780.setCursor(cursorPosCol, cursorPosRow);
           hd44780.write((char)RxQueue[(uint8_t)QueuePos]);
@@ -327,44 +327,6 @@ void loop() {
 
   } else if (SPIState == SPI_SYNC && (millis() - SPIIdleTimer) > 15) {
     SPIState = SPI_WAIT;
-  }
-
-}
-
-/*
-   Function: Check if the SMBus/I2C bus is busy
-   ----------------------------
-     returns: 0 if busy is free, non zero if busy or still checking
-*/
-uint8_t i2cBusy() {
-  if (digitalRead(i2c_sda) == 0 || digitalRead(i2c_scl) == 0) { //If either the data or clock line is low, the line must be busy
-    i2cCheckCount = I2C_BUSY_CHECKS;
-  } else {
-    i2cCheckCount--; //Bus isn't busy, decrease check counter so we check multiple times to be sure.
-  }
-  return i2cCheckCount;
-}
-
-/*
-   Function: Read the Xbox SMBus
-   ----------------------------
-     address: The address of the device on the SMBus
-     command: The command to send to the device. Normally the register to read from
-     rx: A pointer to a receive data buffer
-     len: How many bytes to read
-     returns: 0 on success, -1 on error.
-*/
-int8_t readSMBus(uint8_t address, uint8_t command, char* rx, uint8_t len) {
-  Wire.beginTransmission(address);
-  Wire.write(command);
-  if (Wire.endTransmission(false) == 0) { //Needs to be false. Send I2c repeated start, dont release bus yet
-    Wire.requestFrom(address, len);
-    for (uint8_t i = 0; i < len; i++) {
-      rx[i] = Wire.read();
-    }
-    return 0;
-  } else {
-    return -1;
   }
 
 }
