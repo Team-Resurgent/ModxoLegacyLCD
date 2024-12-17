@@ -15,25 +15,6 @@
 #define LCD_ROW 4
 #define LCD_COL 20
 
-#if (LCD_COL == 16)
-        #define tempDisplayF "CPU:%3u%c MB:%3u%c"
-        #define tempDisplayC "CPU:%3u%c MB:%3u%c"
-        #define tenEightyI "1080i "
-        #define sevenTwentyP "720p "
-        #define fourEightyI "480i "
-        #define fourEightyP "480p "
-        #define fanSpeed "FAN: %3u%%  "
-#else
-        #define tempDisplayF "CPU:%3u%cF M/B:%3u%cF "
-        #define tempDisplayC "CPU:%3u%cC M/B:%3u%cC "
-        #define tenEightyI " 1080i  "
-        #define sevenTwentyP " 720p   "
-        #define fourEightyI " 480i    "
-        #define fourEightyP " 480p    "
-        #define fanSpeed "FAN: %3u%%   "
-
-#endif
-
 //HD44780 LCD Setup
 const uint8_t rs = 18, en = 8, d4 = 7, d5 = 6, d6 = 5, d7 = 4; //HD44780 compliant LCD display pin numbers
 const uint8_t mosi = 16, miso = 14, sck = 15, ss_in = 17; //SPI pin numbers, ss_in is the CS for the slave
@@ -43,28 +24,20 @@ uint8_t cursorPosCol = 0, cursorPosRow = 0; //Track the position of the cursor
 uint8_t wrapping = 0, scrolling = 0; //Xenium spi command toggles for the lcd screen.
 LiquidCrystal hd44780(rs, en, d4, d5, d6, d7); //Constructor for the LCD.
 
-
 //SPI Data
 int16_t RxQueue[256]; //Input FIFO buffer for raw SPI data from Xenium
 uint8_t QueuePos; //Tracks the current position in the FIFO queue that is being processed
 uint8_t QueueRxPos; //Tracks the current position in the FIFO queue of the unprocessed input data (raw realtime SPI data)
-uint8_t SPIState; //SPI State machine flag to monitor the SPI bus state can = SPI_ACTIVE, SPI_IDLE, SPI_SYNC, SPI_WAIT
-uint32_t SPIIdleTimer; //Tracks how long the SPI bus has been idle for
-
-
 
 //I2C Bus
 uint32_t SMBusTimer; //Timer used to trigger SMBus reads
 uint8_t i2cCheckCount = 0;      //Tracks what check we're up to of the i2c bus busy state
 uint8_t I2C_BUSY_CHECKS = 5;  //To ensure we don't interfere with the actual Xbox's SMBus activity, we check the bus for activity for sending.
 
-
 //SPI Bus Receiver Interrupt Routine
 ISR (SPI_STC_vect) {
   RxQueue[QueueRxPos] = SPDR;
   QueueRxPos++; //This is an unsigned 8 bit variable, so will reset back to 0 after 255 automatically
-  SPIState = SPI_ACTIVE;
-
 }
 
 void setup() {
@@ -311,22 +284,6 @@ void loop() {
       QueuePos = (uint8_t)(QueuePos + 1);
     }
 
-  }
-
-  /* State machine to monitor the SPI Bus idle state */
-  /* State machine to monitor the SPI Bus idle state */
-  //If SPI bus has been idle pulse the CS line to resync the bus.
-  //Xenium SPI bus doesnt use a Chip select line to resync the bus so this is a bit hacky, but improved reliability
-  if (SPIState == SPI_ACTIVE) {
-    SPIState = SPI_IDLE;
-    SPIIdleTimer = millis();
-
-  } else if (SPIState == SPI_IDLE && (millis() - SPIIdleTimer) > 30) {
-    SPIState = SPI_SYNC;
-    SPIIdleTimer = millis();
-
-  } else if (SPIState == SPI_SYNC && (millis() - SPIIdleTimer) > 15) {
-    SPIState = SPI_WAIT;
   }
 
 }
