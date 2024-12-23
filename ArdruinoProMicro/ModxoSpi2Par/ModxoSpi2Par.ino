@@ -1,7 +1,7 @@
 #include "xeniumspi.h"
 #include "xboxsmbus.h"
 #include "smwire.h"
-#include <LiquidCrystal.h>
+#include "hd44780_pinIO.h"
 
 //Some screens like difference contrast values. So I couldn't really set a good default value
 //Play around and adjust to suit your screen. If you have flickering issues, it may help to solder
@@ -22,7 +22,7 @@ const uint8_t i2c_sda = 2, i2c_scl = 3; //i2c pins for SMBus
 const uint8_t backlightPin = 10, contrastPin = 9; //Pin nubmers for backlight and contrast. Must be PWM enabled
 uint8_t cursorPosCol = 0, cursorPosRow = 0; //Track the position of the cursor
 uint8_t wrapping = 0, scrolling = 0; //Xenium spi command toggles for the lcd screen.
-LiquidCrystal hd44780(rs, en, d4, d5, d6, d7); //Constructor for the LCD.
+hd44780_pinIO hd44780(rs, en, d4, d5, d6, d7); //Constructor for the LCD.
 
 //SPI Data
 int16_t RxQueue[256]; //Input FIFO buffer for raw SPI data from Xenium
@@ -60,9 +60,6 @@ void setup() {
   SPCR |= _BV(SPIE);  //Enable to SPI Interrupt Vector
   SPCR |= _BV(CPOL);  //SPI Clock is high when inactive
   SPCR |= _BV(CPHA);  //Data is Valid on Clock Trailing Edge
-
-  Wire.begin(0xDD); //Random address that is different from existing bus devices.
-  TWBR = ((F_CPU / 72000) - 16) / 2; //Change I2C frequency closer to OG Xbox SMBus speed. ~72kHz Not compulsory really, but a safe bet
 
   analogWrite(backlightPin, DEFAULT_BACKLIGHT); //0-255 Higher number is brighter.
   analogWrite(contrastPin, DEFAULT_CONTRAST); //0-255 Lower number is higher contrast
