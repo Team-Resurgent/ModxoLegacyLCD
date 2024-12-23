@@ -1,6 +1,5 @@
 #include "xeniumspi.h"
 #include "xboxsmbus.h"
-#include "smwire.h"
 #include "hd44780_pinIO.h"
 
 //Some screens like difference contrast values. So I couldn't really set a good default value
