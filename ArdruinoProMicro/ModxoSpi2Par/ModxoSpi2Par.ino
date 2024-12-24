@@ -17,7 +17,6 @@
 //HD44780 LCD Setup
 const uint8_t rs = 18, en = 8, d4 = 7, d5 = 6, d6 = 5, d7 = 4; //HD44780 compliant LCD display pin numbers
 const uint8_t mosi = 16, miso = 14, sck = 15, ss_in = 17; //SPI pin numbers, ss_in is the CS for the slave
-const uint8_t i2c_sda = 2, i2c_scl = 3; //i2c pins for SMBus
 const uint8_t backlightPin = 10, contrastPin = 9; //Pin nubmers for backlight and contrast. Must be PWM enabled
 uint8_t cursorPosCol = 0, cursorPosRow = 0; //Track the position of the cursor
 uint8_t wrapping = 0, scrolling = 0; //Xenium spi command toggles for the lcd screen.
@@ -27,11 +26,6 @@ hd44780_pinIO hd44780(rs, en, d4, d5, d6, d7); //Constructor for the LCD.
 int16_t RxQueue[256]; //Input FIFO buffer for raw SPI data from Xenium
 uint8_t QueuePos; //Tracks the current position in the FIFO queue that is being processed
 uint8_t QueueRxPos; //Tracks the current position in the FIFO queue of the unprocessed input data (raw realtime SPI data)
-
-//I2C Bus
-uint32_t SMBusTimer; //Timer used to trigger SMBus reads
-uint8_t i2cCheckCount = 0;      //Tracks what check we're up to of the i2c bus busy state
-uint8_t I2C_BUSY_CHECKS = 5;  //To ensure we don't interfere with the actual Xbox's SMBus activity, we check the bus for activity for sending.
 
 //SPI Bus Receiver Interrupt Routine
 ISR (SPI_STC_vect) {
